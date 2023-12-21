@@ -156,7 +156,7 @@ def convert_dicoms_to_unprocessed_png(path: Path) -> pd.DataFrame:
 def morphological_analysis_cv_2(
     image: np.ndarray, se_size=15, iterations=5
 ) -> np.ndarray:
-    """Perform morphological analysis on the input image."""
+    """Perform morphological analysis on single input image."""
     se = cv2.getStructuringElement(cv2.MORPH_RECT, (se_size, se_size))
 
     im_o = cv2.morphologyEx(image, cv2.MORPH_OPEN, se)
@@ -237,11 +237,14 @@ def normalization(path: Path, metadata_df: pd.DataFrame):
 def region_based_segmentation(
     image: np.ndarray, seed_pixel: tuple[int, int], similarity_criteria: float
 ) -> np.ndarray:
+    """Perform region based segmentation on single image."""
     mask = flood(image, seed_pixel, tolerance=similarity_criteria)
 
     return cv2.bitwise_and(image, image, mask=mask.astype(np.uint8))
 
+
 def segmentation(path: Path, metadata_df: pd.DataFrame):
+    """Perform region based segmentation onnormalized images from metadata_df."""
     logging.info("Starting region-based segmentation...")
     output_images_path = path / "segmented_png"
     output_images_path.mkdir(exist_ok=True)
@@ -302,7 +305,7 @@ def resize(path: Path, metadata_df: pd.DataFrame, size: tuple):
 def main(path: Path, size: tuple):
     metadata_df = convert_dicoms_to_unprocessed_png(path=path)
 
-    metadata_df = metadata_df.iloc[:5]
+    # metadata_df = metadata_df.iloc[:5]
 
     morphological_analysis(path, metadata_df)
 
@@ -314,13 +317,10 @@ def main(path: Path, size: tuple):
     metadata_df.to_csv(processed_labels_path, index=False)
 
     resize(path, metadata_df, size)
-    # images = sampling(images)  # TODO: move to dataloader?
-    # images = augmentation(images)  # TODO: move to dataloader?
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--use_cuda", action="store_true", help="help message")
+
     parser.add_argument(
         "--path", type=Path, default=Path("../data/INbreast Release 1.0/")
     )
