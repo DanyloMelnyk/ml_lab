@@ -56,19 +56,28 @@ class SqueezeNetWrapper(nn.Module):
         return self.squeeze_net.features(x)
 
 
-def create_densenet_model(with_lstm):
+def create_densenet_model(with_lstm, more_unfreezed=False):
     model = timm.create_model("densenet121", pretrained=True, num_classes=3)
 
+    if more_unfreezed:
+        unfreeze = (
+            "features.transition3",
+            "features.denseblock3",
+            "features.denseblock4",
+            "features.norm5",
+            "classifier",
+        )
+    else:
+        unfreeze = (
+            "features.denseblock4.denselayer14",
+            "features.denseblock4.denselayer15",
+            "features.denseblock4.denselayer16",
+            "features.norm5",
+            "classifier",
+        )
+
     for name, param in model.named_parameters():
-        if not name.startswith(
-            (
-                "features.denseblock4.denselayer14",
-                "features.denseblock4.denselayer15",
-                "features.denseblock4.denselayer16",
-                "features.norm5",
-                "classifier",
-            )
-        ):
+        if not name.startswith(unfreeze):
             param.requires_grad = False
 
     if with_lstm:
@@ -77,20 +86,28 @@ def create_densenet_model(with_lstm):
         return model
 
 
-def create_squeezenet_model(with_lstm):
+def create_squeezenet_model(with_lstm, more_unfreezed=False):
     model = squeezenet1_0(pretrained=True)
 
     final_conv = nn.Conv2d(512, 3, kernel_size=1)
     nn.init.normal_(final_conv.weight, mean=0.0, std=0.01)
     model.classifier[1] = final_conv
 
+    if more_unfreezed:
+        unfreeze = (
+            "features.9",
+            "features.10",
+            "features.12",
+            "classifier",
+        )
+    else:
+        unfreeze = (
+            "features.12",
+            "classifier",
+        )
+
     for name, param in model.named_parameters():
-        if not name.startswith(
-            (
-                "features.12",
-                "classifier",
-            )
-        ):
+        if not name.startswith(unfreeze):
             param.requires_grad = False
 
     if with_lstm:
