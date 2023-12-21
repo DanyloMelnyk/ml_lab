@@ -96,6 +96,12 @@ class MgDataset(Dataset):
         target = self.target_map(sample_info["birads_int"]).value
         return img, target
 
+    def get_label(self, idx):
+        sample_info = self.samples.iloc[idx]
+
+        target = self.target_map(sample_info["birads_int"]).value
+        return target
+
 
 def create_dataloader(
     samples_csv_path: Path,
@@ -110,7 +116,7 @@ def create_dataloader(
     if is_train:
         transforms = A.Compose(
             [
-                A.Normalize(),
+                A.Normalize(max_pixel_value=65535),
                 A.Resize(224, 224),
                 A.RandomRotate90(p=1),
                 A.Flip(),
@@ -118,7 +124,9 @@ def create_dataloader(
             ]
         )
     else:
-        transforms = A.Compose([A.Normalize(), A.Resize(224, 224), ToTensorV2()])
+        transforms = A.Compose(
+            [A.Normalize(max_pixel_value=65535), A.Resize(224, 224), ToTensorV2()]
+        )
 
     dataset = MgDataset(
         samples,
@@ -152,8 +160,8 @@ def create_dataloader(
 def compute_sample_weights(dataset: Dataset, num_classes: int):
     label_counts = {i: 0 for i in range(num_classes)}
 
-    for _, label, *_ in dataset:
-        label_counts[label] += 1
+    for i in range(len(dataset)):
+        label_counts[dataset.get_label(i)] += 1
 
     print("Dataset disribution:", label_counts)
     min_class_ocurrences = min(label_counts.values())
@@ -163,7 +171,8 @@ def compute_sample_weights(dataset: Dataset, num_classes: int):
     print("Class weights:", class_weights)
 
     sample_weights = []
-    for _, label, *_ in dataset:
+    for i in range(len(dataset)):
+        label = dataset.get_label(i)
         sample_weight = class_weights[label]
         sample_weights.append(sample_weight)
 

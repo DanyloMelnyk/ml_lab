@@ -199,7 +199,7 @@ class ClassifierTrainer(L.LightningModule):
             self.log("loss_train", loss.item(), on_epoch=True, on_step=False)
 
             for metric in self.train_metrics.values():
-                metric.update(predicted, labels)
+                metric.to(self.device).update(predicted, labels)
 
             self.roc_auc_train.update(predicted_probs, labels)
             self.roc_auc_avg_train.update(predicted_probs, labels)
@@ -217,7 +217,7 @@ class ClassifierTrainer(L.LightningModule):
             self.log("loss_val", loss.item(), on_epoch=True, on_step=False)
 
             for metric in self.val_metrics.values():
-                metric.update(predicted, labels)
+                metric.to(self.device).update(predicted, labels)
 
             self.roc_auc_val.update(predicted_probs, labels)
             self.roc_auc_avg_val.update(predicted_probs, labels)
