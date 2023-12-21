@@ -114,3 +114,33 @@ def create_squeezenet_model(with_lstm, more_unfreezed=False):
         return CnnLstmModel(SqueezeNetWrapper(model), 3, 13 * 13)
     else:
         return model
+
+
+def create_vit_model(with_lstm):
+    model = timm.create_model("deit_base_patch16_224", pretrained=True, num_classes=3)
+
+    for name_p, p in model.named_parameters():
+        if ".attn." in name_p:
+            p.requires_grad = True
+        else:
+            p.requires_grad = False
+    try:
+        model.head.weight.requires_grad = True
+        model.head.bias.requires_grad = True
+    except:
+        model.fc.weight.requires_grad = True
+        model.fc.bias.requires_grad = True
+    try:
+        model.pos_embed.requires_grad = True
+    except:
+        print("no position encoding")
+    try:
+        for p in model.patch_embed.parameters():
+            p.requires_grad = False
+    except:
+        print("no patch embed")
+
+    if with_lstm:
+        return CnnLstmModel(model, 3, 768)
+    else:
+        return model
